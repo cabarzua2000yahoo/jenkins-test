@@ -22,26 +22,28 @@ pipeline {
         }
 
         stage('Dependency Check') {
-            steps {
-                echo "🔍 Ejecutando OWASP Dependency-Check (en Docker)..."
-                sh '''
-                mkdir -p reports
-                docker run --rm \
-                  -v $(pwd):/src \
-                  owasp/dependency-check:latest \
-                  --project "$PROJECT_NAME" \
-                  --scan /src \
-                  --format HTML \
-                  --out /src/reports \
-                  --enableExperimental
-                '''
+          steps {
+            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+              sh """
+              mkdir -p reports
+              docker run --rm \
+                -v \$(pwd):/src \
+                owasp/dependency-check:latest \
+                --project "$PROJECT_NAME" \
+                --scan /src \
+                --format HTML \
+                --out /src/reports \
+                --nvdApiKey $NVD_API_KEY
+              """
             }
-            post {
-                success {
-                    echo "✅ Reporte generado en reports/dependency-check-report.html"
-                }
+          }
+          post {
+            success {
+              echo "✅ Reporte generado en reports/dependency-check-report.html"
             }
+          }
         }
+
 
         
 
