@@ -65,14 +65,16 @@ pipeline {
         stage('Security Test - OWASP ZAP') {
             steps {
                 echo "🕵️ Ejecutando escaneo dinámico con OWASP ZAP..."
-                sh """
-                    docker run --rm --network jenkins-net \
-                        -v \$(pwd):/zap/wrk/:rw \
+                sh '''
+                    chmod -R 777 $(pwd)
+                    docker run --rm \
+                        --add-host=host.docker.internal:host-gateway \
+                        -v $(pwd):/zap/wrk/:rw \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
-                        -t $TARGET_URL \
+                        -t http://host.docker.internal:5000 \
                         -r zap-report.html
-                """
+                '''
             }
             post {
                 success {
