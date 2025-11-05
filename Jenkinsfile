@@ -22,18 +22,20 @@ pipeline {
                     sh '''
                         mkdir -p $(pwd)/reports
                         chmod -R 777 $(pwd)/reports
-                        docker volume create dependency-check-data || true
-                        echo "🔍 Ejecutando OWASP Dependency-Check..."
-                        docker run --user root \
-                            -v $(pwd):/src \
-                            -v dependency-check-data:/usr/share/dependency-check/data \
-                            owasp/dependency-check:10.0.2 \
+            
+                        # Copiar el código fuente del workspace al contenedor
+                        docker cp . dependency-check:/src
+            
+                        # Ejecutar el análisis dentro del contenedor permanente
+                        docker exec dependency-check /usr/share/dependency-check/bin/dependency-check.sh \
                             --project pipeline-sec \
                             --scan /src \
                             --format HTML \
-                            --out /src/reports \
-                            --noupdate \
+                            --out /reports \
                             --enableExperimental || true
+            
+                        # Copiar el reporte generado desde el contenedor al workspace de Jenkins
+                        docker cp dependency-check:/reports/dependency-check-report.html $(pwd)/reports/ || true
                     '''
                 }
             }
