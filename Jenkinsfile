@@ -23,39 +23,21 @@ pipeline {
 
         stage('Dependency Check') {
           steps {
-            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-              sh '''
-              mkdir -p reports
+            sh '''
+            mkdir -p reports
+            docker volume create dependency-check-data || true
         
-              # Crear volumen persistente para cachear la base de datos NVD
-              docker volume create dependency-check-data || true
-        
-              echo "🔍 Ejecutando OWASP Dependency-Check con base de datos persistente..."
-              docker run --rm \
-                -v $(pwd):/src \
-                -v dependency-check-data:/usr/share/dependency-check/data \
-                owasp/dependency-check:latest \
-                --project "$PROJECT_NAME" \
-                --scan /src \
-                --format HTML \
-                --out /src/reports \
-                --nvdApiKey ${NVD_API_KEY} \
-                --enableExperimental || \
-              (
-                echo "⚠️ Falla al actualizar NVD, ejecutando con base existente (--noupdate)..."
-                docker run --rm \
-                  -v $(pwd):/src \
-                  -v dependency-check-data:/usr/share/dependency-check/data \
-                  owasp/dependency-check:8.4.0 \
-                  --project "$PROJECT_NAME" \
-                  --scan /src \
-                  --format HTML \
-                  --out /src/reports \
-                  --noupdate \
-                  --enableExperimental
-              )
-              '''
-            }
+            echo "🔍 Ejecutando OWASP Dependency-Check (sin API Key, modo caché)..."
+            docker run --rm \
+              -v $(pwd):/src \
+              -v dependency-check-data:/usr/share/dependency-check/data \
+              owasp/dependency-check:8.4.0 \
+              --project "$PROJECT_NAME" \
+              --scan /src \
+              --format HTML \
+              --out /src/reports \
+              --enableExperimental
+            '''
           }
           post {
             success {
@@ -63,6 +45,7 @@ pipeline {
             }
           }
         }
+
 
 
         
