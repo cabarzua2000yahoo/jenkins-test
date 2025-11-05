@@ -1,24 +1,14 @@
 pipeline {
     agent any
 
-    tools {
-        tool name: 'SonarQubeScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-    }
-
-    
     environment {
-        // Nombre del proyecto para SonarQube y Dependency-Check
         PROJECT_NAME = "pipeline-sec"
-        // URL del SonarQube (ajusta según tu instalación)
         SONARQUBE_URL = "http://localhost:9000"
-        // Token de SonarQube (puedes guardarlo como credencial Jenkins si prefieres)
         SONARQUBE_TOKEN = "sqa_3ad0adb13c4c79046b2c67a27b63995025307220"
-        // URL de la app Flask que analizará ZAP
         TARGET_URL = "http://localhost:5000"
     }
 
     stages {
-
         stage('Build') {
             steps {
                 echo "🏗️ Compilando y preparando el entorno..."
@@ -27,57 +17,47 @@ pipeline {
         }
 
         stage('Dependency Check') {
-          steps {
-            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-              sh '''
-                mkdir -p reports
-                chmod -R 777 reports
-            
-                # Crear volumen persistente para cachear la base de datos NVD
-                docker volume create dependency-check-data || true
-            
-                echo "🔍 Ejecutando OWASP Dependency-Check (con API Key y cache persistente)..."
-            
-                docker run --rm \
-                    -v "$PWD":/src \
-                    -v dependency-check-data:/usr/share/dependency-check/data \
-                    owasp/dependency-check:10.0.2 \
-                    --project pipeline-sec \
-                    --scan /src \
-                    --format JSON \
-                    --out /src/reports \
-                    --noupdate \
-                    --enableExperimental || true
-            '''
-
+            steps {
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                    sh '''
+                        mkdir -p reports
+                        chmod -R 777 reports
+                        docker volume create dependency-check-data || true
+                        echo "🔍 Ejecutando OWASP Dependency-Check..."
+                        docker run --rm \
+                            -v "$PWD":/src \
+                            -v dependency-check-data:/usr/share/dependency-check/data \
+                            owasp/dependency-check:10.0.2 \
+                            --project pipeline-sec \
+                            --scan /src \
+                            --format JSON \
+                            --out /src/reports \
+                            --noupdate \
+                            --enableExperimental || true
+                    '''
+                }
             }
-          }
-          post {
-            success {
-              echo "✅ Reporte generado en reports/dependency-check-report.html"
+            post {
+                success {
+                    echo "✅ Reporte generado en reports/dependency-check-report.html"
+                }
             }
-          }
         }
-        
-
-
-
-
-        
-
 
         stage('SonarQube Analysis') {
             steps {
                 echo "🧠 Analizando código con SonarQube..."
-                withSonarQubeEnv('sonarqube') {
-                    sh """
-                    sonar-scanner \
-                        -Dsonar.projectKey=$PROJECT_NAME \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=$SONARQUBE_URL \
-                        -Dsonar.login=$SONARQUBE_TOKEN
-                    """
-
+                script {
+                    def scannerHome = tool 'SonarQubeScanner'
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=$PROJECT_NAME \
+                                -Dsonar.sources=. \
+                                -Dsonar.host.url=$SONARQUBE_URL \
+                                -Dsonar.login=$SONARQUBE_TOKEN
+                        """
+                    }
                 }
             }
         }
@@ -85,16 +65,14 @@ pipeline {
         stage('Security Test - OWASP ZAP') {
             steps {
                 echo "🕵️ Ejecutando escaneo dinámico con OWASP ZAP..."
-                // Si ZAP corre en Docker en la misma red que Jenkins
                 sh """
-                docker run --rm --network jenkins-net \
-                    -v \$(pwd):/zap/wrk/:rw \
-                    ghcr.io/zaproxy/zaproxy:stable \
-                    zap-baseline.py \
-                    -t $TARGET_URL \
-                    -r zap-report.html
+                    docker run --rm --network jenkins-net \
+                        -v \$(pwd):/zap/wrk/:rw \
+                        ghcr.io/zaproxy/zaproxy:stable \
+                        zap-baseline.py \
+                        -t $TARGET_URL \
+                        -r zap-report.html
                 """
-
             }
             post {
                 success {
