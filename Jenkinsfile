@@ -30,7 +30,7 @@ pipeline {
                             owasp/dependency-check:10.0.2 \
                             --project pipeline-sec \
                             --scan /src \
-                            --format JSON \
+                            --format HTML \
                             --out /src/reports \
                             --noupdate \
                             --enableExperimental || true
@@ -94,7 +94,18 @@ pipeline {
     post {
         always {
             echo "🧾 Guardando reportes de análisis..."
-            archiveArtifacts artifacts: 'reports/**/*.html, zap-report.html', fingerprint: true
+    
+            // Verificar si los reportes existen antes de archivarlos
+            sh '''
+                echo "📁 Archivos en reports/:"
+                ls -la reports || true
+                echo "📁 Archivos en workspace:"
+                ls -la || true
+            '''
+    
+            // Archivar lo que exista
+            archiveArtifacts artifacts: '**/dependency-check-report.*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: 'zap-report.html', fingerprint: true, allowEmptyArchive: true
         }
     }
 }
