@@ -64,18 +64,31 @@ pipeline {
         stage('Security Test - OWASP ZAP') {
             steps {
                 echo "🕵️ Ejecutando escaneo dinámico con OWASP ZAP..."
-                sh '''
-                    chmod -R 777 $(pwd)
-                    docker run --rm --user root \
-                        --network jenkins-net \
-                        -v $(pwd):/zap/wrk/:rw \
-                        ghcr.io/zaproxy/zaproxy:stable \
-                        zap-baseline.py \
-                        -t http://172.23.41.49:5000 \
-                        -r zap-report.html \
-                        -w /zap/wrk/zap-warnings.html \
-                        -J /zap/wrk/zap-report.json || true
-                '''
+                script {
+                    // Inicia ZAP dentro de un contenedor (igual que antes)
+                    sh '''
+                        docker run -d --rm \
+                            --name zap-temp \
+                            --network jenkins-net \
+                            -v $(pwd):/zap/wrk/:rw \
+                            -p 8090:8090 \
+                            ghcr.io/zaproxy/zaproxy:stable \
+                            zap.sh -daemon -port 8090 -host 0.0.0.0 -config api.disablekey=true
+                    '''
+
+                    // Espera unos segundos a que ZAP inicie
+                    sleep 15
+
+                    // Usa los pasos del plugin
+                    zapStart zapHome: '/zap', port: 8090
+                    zapScan target: "${TARGET_URL}"
+                    zapReport fileName: 'zap-report.html', reportDir: '.', reportType: 'HTML'
+                    zapReport fileName: 'zap-report.xml', reportDir: '.', reportType: 'XML'
+                    zapStop()
+
+                    // Detiene el contenedor
+                    sh 'docker stop zap-temp || true'
+                }
             }
             post {
                 always {
