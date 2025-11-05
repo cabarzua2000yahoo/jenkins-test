@@ -25,29 +25,26 @@ pipeline {
           steps {
             withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
               sh '''
-              mkdir -p reports
-              chmod -R 777 reports
-        
-              # Crear volumen persistente para cachear la base de datos NVD
-              docker volume create dependency-check-data || true
-        
-              echo "🔍 Ejecutando OWASP Dependency-Check (con API Key y cache persistente)..."
-        
-              docker run --rm \
-                  -v dependency-check-data:/usr/share/dependency-check/data \
-                  owasp/dependency-check:10.0.2 \
-                  --noupdate \
-                  --project test \
-                  --scan /src \
-                  --format XML \
-                  --out /src/reports \
-                  --enableExperimental
-                
+                mkdir -p reports
+                chmod -R 777 reports
+            
+                # Crear volumen persistente para cachear la base de datos NVD
+                docker volume create dependency-check-data || true
+            
+                echo "🔍 Ejecutando OWASP Dependency-Check (con API Key y cache persistente)..."
+            
+                docker run --rm \
+                    -v "$PWD":/src \
+                    -v dependency-check-data:/usr/share/dependency-check/data \
+                    owasp/dependency-check:10.0.2 \
+                    --project pipeline-sec \
+                    --scan /src \
+                    --format XML \
+                    --out /src/reports \
+                    --noupdate \
+                    --enableExperimental
+            '''
 
-
-
-                )
-              '''
             }
           }
           post {
