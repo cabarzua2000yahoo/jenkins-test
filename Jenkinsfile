@@ -33,26 +33,16 @@ pipeline {
               echo "🔍 Ejecutando OWASP Dependency-Check (con API Key y cache persistente)..."
         
               docker run --rm \
-                -v $(pwd):/src \
-                -v dependency-check-data:/usr/share/dependency-check/data \
-                owasp/dependency-check:12.1.2 \
-                --project "$PROJECT_NAME" \
-                --scan /src \
-                --format HTML \
-                --out /src/reports \
-                --nvdApiKey ${NVD_API_KEY} \
-                --enableExperimental || (
-                  echo "⚠️ Falla al actualizar, reintentando con base cacheada (--noupdate)..."
-                  docker run --rm \
-                    -v $(pwd):/src \
-                    -v dependency-check-data:/usr/share/dependency-check/data \
-                    owasp/dependency-check:12.1.2 \
-                    --project "$PROJECT_NAME" \
-                    --scan /src \
-                    --format HTML \
-                    --out /src/reports \
-                    --noupdate \
-                    --enableExperimental
+                  -v "$PWD":/src \
+                  -v dependency-check-data:/usr/share/dependency-check/data \
+                  owasp/dependency-check:12.1.2 \
+                  --project pipeline-sec \
+                  --scan /src \
+                  --format HTML \
+                  --out /src/reports \
+                  --noupdate \
+                  --enableExperimental
+
                 )
               '''
             }
