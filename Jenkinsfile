@@ -35,18 +35,18 @@ pipeline {
               docker run --rm \
                 -v $(pwd):/src \
                 -v dependency-check-data:/usr/share/dependency-check/data \
-                owasp/dependency-check:12.0.2 \
+                owasp/dependency-check:12.1.2 \
                 --project "$PROJECT_NAME" \
                 --scan /src \
                 --format HTML \
                 --out /src/reports \
                 --nvdApiKey ${NVD_API_KEY} \
                 --enableExperimental || (
-                  echo "⚠️ Error en la actualización, reintentando con --noupdate"
+                  echo "⚠️ Falla al actualizar, reintentando con base cacheada (--noupdate)..."
                   docker run --rm \
                     -v $(pwd):/src \
                     -v dependency-check-data:/usr/share/dependency-check/data \
-                    owasp/dependency-check:12.1.0 \
+                    owasp/dependency-check:12.1.2 \
                     --project "$PROJECT_NAME" \
                     --scan /src \
                     --format HTML \
@@ -63,6 +63,7 @@ pipeline {
             }
           }
         }
+        
 
 
 
