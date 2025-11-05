@@ -24,16 +24,17 @@ pipeline {
         stage('Dependency Check') {
             steps {
                 echo "🔍 Ejecutando OWASP Dependency-Check (en Docker)..."
-                sh """
+                sh '''
+                mkdir -p reports
                 docker run --rm \
-                  -v \$(pwd):/src \
+                  -v $(pwd):/src \
                   owasp/dependency-check:latest \
                   --project "$PROJECT_NAME" \
                   --scan /src \
                   --format HTML \
                   --out /src/reports \
                   --enableExperimental
-                """
+                '''
             }
             post {
                 success {
@@ -41,6 +42,7 @@ pipeline {
                 }
             }
         }
+
         
 
 
