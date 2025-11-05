@@ -35,7 +35,7 @@ pipeline {
               docker run --rm \
                 -v $(pwd):/src \
                 -v dependency-check-data:/usr/share/dependency-check/data \
-                owasp/dependency-check:12.1.0 \
+                owasp/dependency-check:12.0.2 \
                 --project "$PROJECT_NAME" \
                 --scan /src \
                 --format HTML \
