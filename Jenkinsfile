@@ -95,7 +95,12 @@ pipeline {
     post {
         always {
             echo "🧾 Guardando reportes de análisis..."
-            archiveArtifacts artifacts: 'reports/**/*.html, zap-report.html', fingerprint: true
+            sh '''
+                mkdir -p reports
+                if [ -f zap-report.html ]; then cp zap-report.html reports/; fi
+                if [ -f reports/dependency-check-report.html ]; then echo "OK"; fi
+            '''
+            archiveArtifacts artifacts: 'reports/**/*.html', fingerprint: true
         }
     }
 }
