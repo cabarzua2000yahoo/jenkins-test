@@ -48,7 +48,7 @@ pipeline {
                 echo "🧠 Analizando código con SonarQube..."
                 script {
                     def scannerHome = tool 'SonarQubeScanner'
-                    withSonarQubeEnv('sonarqube') {
+                    withSonarQubeEnv('SonarQubeScanner') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=$PROJECT_NAME \
