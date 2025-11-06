@@ -9,13 +9,6 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
-            steps {
-                echo "🏗️ Compilando y preparando el entorno..."
-                sh 'echo "Simulando build (no se requiere compilación en Python)"'
-            }
-        }
-
         stage('Dependency Check') {
             steps {
                 withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
@@ -23,7 +16,7 @@ pipeline {
                         mkdir -p reports
                         chmod -R 777 reports
                         docker volume create dependency-check-data || true
-                        echo "🔍 Ejecutando OWASP Dependency-Check..."
+                        echo "Ejecutando OWASP Dependency-Check..."
                         docker run --rm --user root \
                             -v "$PWD":/src \
                             -v dependency-check-data:/usr/share/dependency-check/data \
@@ -38,14 +31,14 @@ pipeline {
             }
             post {
                 always {
-                    echo "✅ Dependency-Check finalizado (ver reports/)"
+                    echo "Dependency-Check finalizado"
                 }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                echo "🧠 Analizando código con SonarQube..."
+                echo "Analizando codigo con SonarQube..."
                 script {
                     def scannerHome = tool 'SonarQubeScanner'
                     withSonarQubeEnv('SonarQubeScanner') {
@@ -63,7 +56,7 @@ pipeline {
 
         stage('Security Test - OWASP ZAP') {
             steps {
-                echo "🕵️ Ejecutando escaneo dinámico con OWASP ZAP..."
+                echo "Ejecutando escaneo con OWASP ZAP..."
                 script {
                     // Inicia ZAP dentro de un contenedor (igual que antes)
                     sh '''
@@ -92,24 +85,16 @@ pipeline {
             }
             post {
                 always {
-                    echo "✅ Reporte de ZAP generado (html/json)"
+                    echo "Reporte de ZAP generado (html/json)"
                 }
-            }
-        }
-
-        stage('Deploy (simulado)') {
-            steps {
-                echo "🚀 Desplegando aplicación en entorno de prueba..."
-                sh 'echo "Despliegue simulado completado."'
             }
         }
     }
 
     post {
         always {
-            echo "🧾 Guardando reportes de análisis..."
             sh '''
-                echo "📁 Archivos generados:"
+                echo "Archivos generados:"
                 find $(pwd) -maxdepth 2 -type f -name "*.html" -o -name "*.json" || true
             '''
             archiveArtifacts artifacts: 'reports/**/*.html, reports/**/*.json', fingerprint: true, allowEmptyArchive: true
