@@ -7,17 +7,17 @@ pipeline {
         SONARQUBE_TOKEN = "sqa_7115cfbc14d04086aa25b83e470a8a85d8d418aa"
         TARGET_URL = "http://172.23.41.49:5000"
     }
-    
-    stage('Install Python') {
-        steps {
-            sh '''
-                apt update
-                apt install -y python3 python3-venv python3-pip
-            '''
-        }
-    }
 
     stages {
+        stage('Install Python') {
+            steps {
+                sh '''
+                    apt update
+                    apt install -y python3 python3-venv python3-pip
+                '''
+            }
+        }
+        
         stage('Setup Environment') {
             steps {
                 sh '''
